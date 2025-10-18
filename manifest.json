@@ -3,7 +3,7 @@
 	"name": "Easy Color Picker",
 	"version": "1.0.0",
 	"minAppVersion": "1.9.14",
-	"description": "Display a color picker on the right sidebar and a generated color code can be copied to Clipboard.",
+	"description": "Display a color picker and a color code for the color you choose on the right sidebar.",
 	"author": "DirectKidman",
 	"isDesktopOnly": false
 }
