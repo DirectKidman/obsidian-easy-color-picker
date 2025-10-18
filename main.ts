@@ -1,134 +1,167 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { ItemView, Plugin, WorkspaceLeaf, Notice } from "obsidian";
 
-// Remember to rename these classes and interfaces!
+const VIEW_TYPE_COLOR_PICKER = "color-picker-view";
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ColorPickerSidebarPlugin extends Plugin {
+	history: string[] = [];
 
 	async onload() {
-		await this.loadSettings();
+		this.history = (await this.loadData())?.history ?? [];
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		// サイドバー登録
+		this.registerView(
+			VIEW_TYPE_COLOR_PICKER,
+			(leaf) => new ColorPickerView(leaf, this),
+		);
+	
+		this.activateView();
+		
+	}
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, _view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+	async activateView() {
+		const leaves = this.app.workspace.getLeavesOfType(
+			VIEW_TYPE_COLOR_PICKER,
+		);
+		if (leaves.length === 0) {
+			await this.app.workspace.getRightLeaf(false)?.setViewState({
+				type: VIEW_TYPE_COLOR_PICKER,
+				active: true,
+			});
+		}
+		this.app.workspace.revealLeaf(
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_COLOR_PICKER)[0],
+		);
 	}
 
 	onunload() {
-
+		this.app.workspace
+			.getLeavesOfType(VIEW_TYPE_COLOR_PICKER)
+			.forEach((leaf) => leaf.detach());
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	addToHistory(color: string) {
+		// 重複削除して先頭に追加、最大10件
+		this.history = [
+			color,
+			...this.history.filter((c) => c !== color),
+		].slice(0, 10);
+		this.saveData({ history: this.history });
 	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	
+	deleteHistory() {
+		this.history = [];
+		this.saveData({ history: this.history });
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class ColorPickerView extends ItemView {
+	plugin: ColorPickerSidebarPlugin;
+	color = "#ffcc00";
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
+	constructor(leaf: WorkspaceLeaf, plugin: ColorPickerSidebarPlugin) {
+		super(leaf);
 		this.plugin = plugin;
+		this.icon = "palette";
 	}
 
-	display(): void {
-		const {containerEl} = this;
+	getViewType() {
+		return VIEW_TYPE_COLOR_PICKER;
+	}
 
-		containerEl.empty();
+	getDisplayText() {
+		return "Color Picker";
+	}
 
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+	async onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		const wrapper = contentEl.createDiv({ cls: "color-picker-wrapper" });
+		wrapper.style.padding = "12px";
+		wrapper.style.display = "flex";
+		wrapper.style.flexDirection = "column";
+		wrapper.style.alignItems = "center";
+		wrapper.style.gap = "10px";
+
+		// 説明
+		wrapper.createEl("h4", {text: "Click a color code to copy."})
+		// カラーピッカー
+		const input = wrapper.createEl("input");
+		input.type = "color";
+		input.value = this.color;
+		input.style.width = "80px";
+		input.style.height = "40px";
+		input.style.border = "none";
+		input.style.cursor = "pointer";
+
+		// カラーコードラベル
+		const label = wrapper.createEl("div", { text: this.color });
+		label.style.fontFamily = "monospace";
+		label.style.fontSize = "14px";
+		label.style.cursor = "pointer";
+		label.style.userSelect = "none";
+		label.style.transition = "transform 0.1s";
+		label.style.padding = "5px";
+		// label.style.textShadow = "1px 1px 10px #ffffff";		
+
+		const historyContainer = wrapper.createDiv();
+		historyContainer.style.display = "flex";
+		historyContainer.style.flexWrap = "wrap";
+		historyContainer.style.justifyContent = "center";
+		historyContainer.style.gap = "6px";
+
+		// 履歴見出し
+		const deleteButton = wrapper.createEl("button", { text: "delete history" });
+		
+		deleteButton.onClickEvent((ev: MouseEvent) => {
+			this.plugin.deleteHistory();
+			renderHistory();
+		});
+		// 履歴の描画関数
+		const renderHistory = () => {
+			historyContainer.empty();
+			this.plugin.history.forEach((color) => {
+				const swatch = historyContainer.createEl("div");
+				swatch.style.width = "20px";
+				swatch.style.height = "20px";
+				swatch.style.border = "1px solid var(--text-muted)";
+				swatch.style.borderRadius = "4px";
+				swatch.style.backgroundColor = color;
+				swatch.style.cursor = "pointer";
+				swatch.title = color;
+
+				swatch.onclick = () => {
+					this.color = color;
+					input.value = color;
+					label.textContent = color;
+					// label.style.color = color;
+				};
+			});
+		};
+
+		label.onclick = async () => {
+			await navigator.clipboard.writeText(this.color);
+			new Notice(`✅ ${this.color} copy to clipboard`);
+			label.style.transform = "scale(1.1)";
+			// label.style.color = this.color;
+			this.plugin.addToHistory(this.color);
+			renderHistory();
+			setTimeout(() => (label.style.transform = "scale(1)"), 150);
+		};
+
+		// カラー変更時
+		input.addEventListener("input", (e) => {
+			const value = (e.target as HTMLInputElement).value;
+			this.color = value;
+			label.textContent = value;
+			// label.style.color = value;
+		});
+
+		// 初期履歴描画
+		renderHistory();
+	}
+
+	async onClose() {
+		this.contentEl.empty();
 	}
 }
