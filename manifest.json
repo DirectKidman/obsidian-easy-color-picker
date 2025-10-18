@@ -1,8 +1,8 @@
 {
-	"id": "easy-color-picker-plugin",
+	"id": "color-picker-panel",
 	"name": "Easy Color Picker",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.9.14",
 	"description": "Display a color picker on the right sidebar and a generated color code can be copied to Clipboard.",
 	"author": "DirectKidman",
 	"isDesktopOnly": false
