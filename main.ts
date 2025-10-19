@@ -13,9 +13,8 @@ export default class ColorPickerSidebarPlugin extends Plugin {
 			VIEW_TYPE_COLOR_PICKER,
 			(leaf) => new ColorPickerView(leaf, this),
 		);
-	
+
 		this.activateView();
-		
 	}
 
 	async activateView() {
@@ -47,7 +46,7 @@ export default class ColorPickerSidebarPlugin extends Plugin {
 		].slice(0, 10);
 		this.saveData({ history: this.history });
 	}
-	
+
 	deleteHistory() {
 		this.history = [];
 		this.saveData({ history: this.history });
@@ -77,24 +76,33 @@ class ColorPickerView extends ItemView {
 		contentEl.empty();
 
 		const wrapper = contentEl.createDiv({ cls: "color-picker-wrapper" });
-
-
 		// 説明
-		wrapper.createEl("h4", {cls: "explanation-label", text: "Click a color code to copy."})
+		wrapper.createEl("h4", {
+			cls: "explanation-label",
+			text: "Click a color code to copy.",
+		});
 		// カラーピッカー
-		const input = wrapper.createEl("input", {cls: "color-picker"});
+		const input = wrapper.createEl("input", { cls: "color-picker" });
 		input.type = "color";
 		input.value = this.color;
 
 		// カラーコードラベル
-		const label = wrapper.createEl("div", { cls: "color-code-label", text: this.color });
+		const label = wrapper.createEl("div", {
+			cls: "color-code-label",
+			text: this.color,
+		});
 
 		// history container
-		const historyContainer = wrapper.createDiv({ cls: "history-container"});
+		const historyContainer = wrapper.createDiv({
+			cls: "history-container",
+		});
 
 		// 履歴見出し
-		const deleteButton = wrapper.createEl("button", { cls: "delete-button", text: "delete history" });
-		
+		const deleteButton = wrapper.createEl("button", {
+			cls: "delete-button",
+			text: "delete history",
+		});
+
 		deleteButton.onClickEvent((ev: MouseEvent) => {
 			this.plugin.deleteHistory();
 			renderHistory();
@@ -103,7 +111,9 @@ class ColorPickerView extends ItemView {
 		const renderHistory = () => {
 			historyContainer.empty();
 			this.plugin.history.forEach((color) => {
-				const swatch = historyContainer.createEl("div", {cls: "history-swatch"});
+				const swatch = historyContainer.createEl("div", {
+					cls: "history-swatch",
+				});
 				swatch.style.backgroundColor = color;
 				swatch.title = color;
 
@@ -118,11 +128,8 @@ class ColorPickerView extends ItemView {
 		label.onclick = async () => {
 			await navigator.clipboard.writeText(this.color);
 			new Notice(`✅ ${this.color} copy to clipboard`);
-			// label.style.transform = "scale(1.1)";
-			// label.style.color = this.color;
 			this.plugin.addToHistory(this.color);
 			renderHistory();
-			// setTimeout(() => (label.style.transform = "scale(1)"), 150);
 		};
 
 		// カラー変更時
@@ -130,7 +137,6 @@ class ColorPickerView extends ItemView {
 			const value = (e.target as HTMLInputElement).value;
 			this.color = value;
 			label.textContent = value;
-			// label.style.color = value;
 		});
 
 		// 初期履歴描画
