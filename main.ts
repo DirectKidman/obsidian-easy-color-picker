@@ -77,41 +77,23 @@ class ColorPickerView extends ItemView {
 		contentEl.empty();
 
 		const wrapper = contentEl.createDiv({ cls: "color-picker-wrapper" });
-		wrapper.style.padding = "12px";
-		wrapper.style.display = "flex";
-		wrapper.style.flexDirection = "column";
-		wrapper.style.alignItems = "center";
-		wrapper.style.gap = "10px";
+
 
 		// 説明
-		wrapper.createEl("h4", {text: "Click a color code to copy."})
+		wrapper.createEl("h4", {cls: "explanation-label", text: "Click a color code to copy."})
 		// カラーピッカー
-		const input = wrapper.createEl("input");
+		const input = wrapper.createEl("input", {cls: "color-picker"});
 		input.type = "color";
 		input.value = this.color;
-		input.style.width = "80px";
-		input.style.height = "40px";
-		input.style.border = "none";
-		input.style.cursor = "pointer";
 
 		// カラーコードラベル
-		const label = wrapper.createEl("div", { text: this.color });
-		label.style.fontFamily = "monospace";
-		label.style.fontSize = "14px";
-		label.style.cursor = "pointer";
-		label.style.userSelect = "none";
-		label.style.transition = "transform 0.1s";
-		label.style.padding = "5px";
-		// label.style.textShadow = "1px 1px 10px #ffffff";		
+		const label = wrapper.createEl("div", { cls: "color-code-label", text: this.color });
 
-		const historyContainer = wrapper.createDiv();
-		historyContainer.style.display = "flex";
-		historyContainer.style.flexWrap = "wrap";
-		historyContainer.style.justifyContent = "center";
-		historyContainer.style.gap = "6px";
+		// history container
+		const historyContainer = wrapper.createDiv({ cls: "history-container"});
 
 		// 履歴見出し
-		const deleteButton = wrapper.createEl("button", { text: "delete history" });
+		const deleteButton = wrapper.createEl("button", { cls: "delete-button", text: "delete history" });
 		
 		deleteButton.onClickEvent((ev: MouseEvent) => {
 			this.plugin.deleteHistory();
@@ -121,20 +103,14 @@ class ColorPickerView extends ItemView {
 		const renderHistory = () => {
 			historyContainer.empty();
 			this.plugin.history.forEach((color) => {
-				const swatch = historyContainer.createEl("div");
-				swatch.style.width = "20px";
-				swatch.style.height = "20px";
-				swatch.style.border = "1px solid var(--text-muted)";
-				swatch.style.borderRadius = "4px";
+				const swatch = historyContainer.createEl("div", {cls: "history-swatch"});
 				swatch.style.backgroundColor = color;
-				swatch.style.cursor = "pointer";
 				swatch.title = color;
 
 				swatch.onclick = () => {
 					this.color = color;
 					input.value = color;
 					label.textContent = color;
-					// label.style.color = color;
 				};
 			});
 		};
@@ -142,11 +118,11 @@ class ColorPickerView extends ItemView {
 		label.onclick = async () => {
 			await navigator.clipboard.writeText(this.color);
 			new Notice(`✅ ${this.color} copy to clipboard`);
-			label.style.transform = "scale(1.1)";
+			// label.style.transform = "scale(1.1)";
 			// label.style.color = this.color;
 			this.plugin.addToHistory(this.color);
 			renderHistory();
-			setTimeout(() => (label.style.transform = "scale(1)"), 150);
+			// setTimeout(() => (label.style.transform = "scale(1)"), 150);
 		};
 
 		// カラー変更時
